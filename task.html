@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f7fb">
+  <title>タスクマネージャー</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="app-header">
+      <div class="header-main">
+        <p class="eyebrow">Personal Task Manager</p>
+        <h1>タスクマネージャー</h1>
+        <p class="header-copy">締切・優先度・種類をまとめて、スマートフォンでもすぐ確認できます。</p>
+      </div>
+
+      <section class="sync-panel" aria-labelledby="syncTitle">
+        <button id="syncToggleButton" class="sync-toggle-button" type="button" aria-expanded="false" aria-controls="syncAccountPanel">
+          <span>新規作成/ログイン</span>
+          <small id="syncStatus">未接続</small>
+        </button>
+        <div id="syncAccountPanel" class="sync-account-panel hidden">
+          <div class="sync-heading">
+            <h2 id="syncTitle">共有アカウント</h2>
+          </div>
+          <form id="syncForm" class="sync-form">
+            <label class="field" for="syncAccountId">
+              <span>ID</span>
+              <input id="syncAccountId" type="text" autocomplete="username" placeholder="例: my-tasks">
+            </label>
+            <label class="field" for="syncPassword">
+              <span>パスワード（12桁以上）</span>
+              <input id="syncPassword" type="password" minlength="12" autocomplete="current-password">
+            </label>
+            <div class="sync-actions">
+              <button id="syncLoginButton" class="secondary-button" type="submit">ログイン</button>
+              <button id="syncCreateButton" class="secondary-button" type="button">新規作成</button>
+              <button id="syncNowButton" class="secondary-button" type="button" disabled>今すぐ同期</button>
+              <button id="syncLogoutButton" class="secondary-button sync-logout-button hidden" type="button">解除</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </header>
+
+    <section class="summary-grid" aria-label="タスク数の概要">
+      <article class="summary-card">
+        <span class="summary-label">すべて</span>
+        <strong id="totalCount">0</strong>
+      </article>
+      <article class="summary-card">
+        <span class="summary-label">未完了</span>
+        <strong id="activeCount">0</strong>
+      </article>
+      <article class="summary-card">
+        <span class="summary-label">完了済み</span>
+        <strong id="completedCount">0</strong>
+      </article>
+    </section>
+
+    <section class="panel" aria-labelledby="formTitle">
+      <h2 id="formTitle">タスクを追加</h2>
+      <form id="taskForm" class="task-form">
+        <label class="field field-wide" for="taskTitle">
+          <span>タスク名</span>
+          <input id="taskTitle" type="text" placeholder="例: レポートの参考文献を確認する" autocomplete="off" required>
+        </label>
+
+        <label class="field field-wide" for="taskMemo">
+          <span>メモ</span>
+          <textarea id="taskMemo" rows="3" placeholder="タスクの詳細や補足を書けます"></textarea>
+        </label>
+
+        <label class="field option-field" for="taskCategory">
+          <span>種類</span>
+          <div class="option-select-row">
+            <select id="taskCategory"></select>
+            <button id="editCategoryButton" class="option-edit-button" type="button">編集</button>
+          </div>
+        </label>
+
+        <label class="field option-field" for="taskPriority">
+          <span>優先度</span>
+          <div class="option-select-row">
+            <select id="taskPriority"></select>
+            <button id="editPriorityButton" class="option-edit-button" type="button">編集</button>
+          </div>
+        </label>
+
+        <label class="field" for="taskEstimate">
+          <span>推定時間（時間）</span>
+          <input id="taskEstimate" type="number" min="0" step="0.25" placeholder="例: 1.5">
+        </label>
+
+        <label class="field" for="taskDeadline">
+          <span>締切日</span>
+          <input id="taskDeadline" type="date">
+        </label>
+
+        <button class="primary-button" type="submit">追加</button>
+      </form>
+    </section>
+
+    <nav class="filter-tabs" aria-label="タスク状態の表示切り替え">
+      <button class="filter-button active" type="button" data-filter="all">すべて</button>
+      <button class="filter-button" type="button" data-filter="active">未完了</button>
+      <button class="filter-button" type="button" data-filter="completed">完了済み</button>
+    </nav>
+
+    <section class="category-filter-panel" aria-label="タスク種類の表示切り替え">
+      <label class="category-filter-label" for="categoryFilterSearch">種類で絞り込み</label>
+      <div class="category-combobox">
+        <button id="categoryFilterToggle" class="category-filter-toggle" type="button" aria-haspopup="listbox" aria-expanded="false">
+          すべて
+        </button>
+        <div id="categoryFilterMenu" class="category-filter-menu hidden">
+          <input id="categoryFilterSearch" type="search" placeholder="種類を検索" autocomplete="off">
+          <ul id="categoryFilterList" class="category-filter-list" role="listbox" aria-multiselectable="true"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="task-section" aria-labelledby="taskListTitle">
+      <div class="section-heading">
+        <h2 id="taskListTitle">タスク一覧</h2>
+        <span id="currentFilterLabel">すべて表示中</span>
+      </div>
+
+      <ul id="taskList" class="task-list" aria-live="polite"></ul>
+      <p id="emptyMessage" class="empty-message">まだタスクがありません。</p>
+    </section>
+
+    <section class="calendar-section panel" aria-labelledby="calendarTitle">
+      <div class="calendar-heading">
+        <h2 id="calendarTitle">タスクカレンダー</h2>
+        <div class="calendar-controls">
+          <button id="prevMonthButton" type="button" aria-label="前の月">‹</button>
+          <strong id="calendarMonthLabel"></strong>
+          <button id="nextMonthButton" type="button" aria-label="次の月">›</button>
+        </div>
+      </div>
+
+      <div class="calendar-weekdays" aria-hidden="true">
+        <span>日</span>
+        <span>月</span>
+        <span>火</span>
+        <span>水</span>
+        <span>木</span>
+        <span>金</span>
+        <span>土</span>
+      </div>
+      <div id="calendarGrid" class="calendar-grid" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <div id="optionModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="optionModalTitle">
+    <section class="modal-panel">
+      <div class="modal-heading">
+        <h2 id="optionModalTitle">選択肢を編集</h2>
+        <button id="closeOptionModalButton" class="modal-close-button" type="button" aria-label="閉じる">×</button>
+      </div>
+
+      <div class="option-add-row">
+        <input id="optionNewLabelInput" type="text" placeholder="新しい選択肢" autocomplete="off">
+        <input id="optionNewColorInput" class="color-input" type="color" value="#2f7df6" aria-label="色を選択">
+        <button id="addOptionButton" type="button">追加</button>
+      </div>
+
+      <ul id="editableOptionList" class="editable-option-list"></ul>
+    </section>
+  </div>
+
+  <div id="calendarTaskModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="calendarTaskModalTitle">
+    <section class="modal-panel">
+      <div class="modal-heading">
+        <h2 id="calendarTaskModalTitle">日付のタスク</h2>
+        <button id="closeCalendarTaskModalButton" class="modal-close-button" type="button" aria-label="閉じる">×</button>
+      </div>
+
+      <ul id="calendarTaskList" class="calendar-task-list"></ul>
+      <p id="calendarTaskEmptyMessage" class="calendar-task-empty">この日のタスクはありません。</p>
+    </section>
+  </div>
+
+  <div id="memoModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="memoModalTitle">
+    <section class="modal-panel">
+      <div class="modal-heading">
+        <h2 id="memoModalTitle">タスクを編集</h2>
+        <button id="closeMemoModalButton" class="modal-close-button" type="button" aria-label="閉じる">×</button>
+      </div>
+
+      <div class="edit-task-form">
+        <label class="field" for="taskEditTitle">
+          <span>タスク名</span>
+          <input id="taskEditTitle" type="text" autocomplete="off" required>
+        </label>
+
+        <label class="field" for="memoEditInput">
+          <span>メモ</span>
+          <textarea id="memoEditInput" class="memo-edit-input" rows="6" placeholder="タスクの詳細や補足を書けます"></textarea>
+        </label>
+
+        <label class="field" for="taskEditCategory">
+          <span>種類</span>
+          <select id="taskEditCategory"></select>
+        </label>
+
+        <label class="field" for="taskEditPriority">
+          <span>優先度</span>
+          <select id="taskEditPriority"></select>
+        </label>
+
+        <label class="field" for="taskEditEstimate">
+          <span>推定時間（時間）</span>
+          <input id="taskEditEstimate" type="number" min="0" step="0.25">
+        </label>
+
+        <label class="field" for="taskEditDeadline">
+          <span>締切日</span>
+          <input id="taskEditDeadline" type="date">
+        </label>
+      </div>
+
+      <button id="saveMemoButton" class="memo-save-button" type="button">保存</button>
+    </section>
+  </div>
+</body>
+</html>
